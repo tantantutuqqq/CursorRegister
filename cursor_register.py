@@ -11,7 +11,7 @@ from datetime import datetime
 
 from faker import Faker
 from DrissionPage import ChromiumOptions, Chromium
-from temp_mails import Tempmail_io, Guerillamail_com
+from temp_mails import Tempmail_lol, Guerillamail_com
 
 CURSOR_URL = "https://www.cursor.com/"
 CURSOR_LOGIN_URL = "https://authenticator.cursor.sh"
@@ -61,7 +61,7 @@ def sign_up(options):
     thread_id = threading.current_thread().ident
     
     # Get temp email address
-    mail = Tempmail_io()
+    mail = Tempmail_lol()
     #mail = Guerillamail_com()
     email = mail.email
 
@@ -305,10 +305,16 @@ if __name__ == "__main__":
     
     if use_oneapi and len(account_infos) > 0:
         from tokenManager.oneapi_manager import OneAPIManager
+        from tokenManager.cursor import Cursor
         oneapi = OneAPIManager(oneapi_url, oneapi_token)
-        response = oneapi.add_channel("Cursor",
-                                      oneapi_channel_url,
-                                      tokens,
-                                      OneAPIManager.cursor_models)
-        print(f'[OneAPI] Add Channel Request Status Code: {response.status_code}')
-        print(f'[OneAPI] Add Channel Request Response Body: {response.json()}')
+
+        # Send request by batch to avoid "Too many SQL variables" error in SQLite.
+        # If you use MySQL, better to set the batch_size as len(tokens)
+        batch_size = 10
+        for idx, i in enumerate(range(0, len(tokens), batch_size), start=1):
+            batch = tokens[i:i + batch_size]
+            response = oneapi.add_channel("Cursor",
+                                          oneapi_channel_url,
+                                          '\n'.join(batch),
+                                          Cursor.models)
+            print(f'[OneAPI] Add Channel Request For Batch {idx}. Status Code: {response.status_code}, Response Body: {response.json()}')
